@@ -19,9 +19,9 @@ return [
     // 应用地址
     'app_host'               => '',
     // 应用调试模式
-    'app_debug'              => false,
+    'app_debug'              => true,
     // 应用Trace
-    'app_trace'              => false,
+    'app_trace'              => true,
     // 是否支持多模块
     'app_multi_module'       => true,
     // 入口自动绑定模块
@@ -126,8 +126,6 @@ return [
     'route_check_cache'      => false,
     // 路由缓存的Key自定义设置（闭包），默认为当前URL和请求类型的md5
     'route_check_cache_key'  => '',
-    // 路由缓存类型及参数
-    'route_cache_option'     => '',
 
     // 默认跳转页面对应的模板文件
     'dispatch_success_tmpl'  => Env::get('think_path') . 'tpl/dispatch_jump.tpl',
