@@ -1,7 +1,7 @@
 <?php
 namespace app\pick\controller;
 
-
+header('Access-Control-Allow-Origin:*');
 
 use think\Controller;
 use think\Db;
@@ -26,16 +26,21 @@ class Index extends Controller
 	//     - 响应
 	//         + err
 	//         + token
-    public Function CheckLogin($uname, $upwd){
+    public Function CheckLogin($name, $pwd){
+
+    	// header('Access-Control-Allow-Origin:*');
+
 		$data = ['err' => 0];
 
-		$user = User::where('name', $uname)->select();
-		if(sizeof($user)==0){
-			$data->err = 1;
+		// var_dump(Building::where("id",1)->find());
+
+		$user = User::where('name', $name)->find();
+		if(!$user){
+			$data["err"] = 1;
 			return json($data);
 		}
 
-		if($upwd != $user[0]->pwd){
+		if($pwd != $user->pwd){
 			$data["err"] = 1;
 			return json($data);
 		}
@@ -43,9 +48,28 @@ class Index extends Controller
 		$data["token"] = uniqid();
 
         UserToken::create([
-            'user_id'  =>  4,
+            'user_id'  =>  $user->id,
             'token' =>  $data["token"]
         ], ['user_id','token'], true);
+
+
+		$user_batch_list = UserBatch::where("user_id", $user->id)->select();
+		$data["user_batch_list"] = $user_batch_list;
+
+		$favorite_building_list = Favorite::where("user_id", $user->id)->select();
+		$data["favorite_building_list"] = $favorite_building_list;
+		
+		$order_building_list = Order::where("user_id", $user->id)->select();
+		$data["order_building_list"] = $order_building_list;
+
+		$batch_id_list = [];
+		foreach($user_batch_list as $key=>$user_batch){
+		    $batch_id_list[] = $user_batch->batch_id;
+		}
+
+		$batch_list = Batch::where("id", "in", $batch_id_list)->select();
+		$data["batch_list"] = $batch_list;
+
         return json($data);
     }
 
@@ -75,16 +99,112 @@ class Index extends Controller
 		}
 
 		$user_batch_list = UserBatch::where("user_id", $user_id)->select();
+		$data["user_batch_list"] = $user_batch_list;
+
+		$favorite_building_list = Favorite::where("user_id", $user_id)->select();
+		$data["favorite_building_list"] = $favorite_building_list;
+		
+		$order_building_list = Order::where("user_id", $user_id)->select();
+		$data["order_building_list"] = $order_building_list;
 
 		$batch_id_list = [];
 		foreach($user_batch_list as $key=>$user_batch){
 		    $batch_id_list[] = $user_batch->batch_id;
 		}
 
-		$data["user_batch_list"] = $user_batch_list;
-
 		$batch_list = Batch::where("id", "in", $batch_id_list)->select();
 		$data["batch_list"] = $batch_list;
+
+        return json($data);
+    }
+
+	// * 房子收藏 AddFavorite
+	//     - 请求: token / building_id
+	//     - 响应
+	//         + err
+	//         + user_data
+	//             * favorite_building_list
+	//                 - 房子编号 id，批次编号 batch_id，名字 name，是否车位 is_parking，面积 area，几房几厅几卫描述 desc，单价 unit_price，总价 total_price，订购者编号 book_user_id，收藏计数 favorite_count
+    public Function AddFavorite($token, $building_id){
+
+		$data = ['err' => 0];
+		$user_id = $this->_GetUserID($token);
+		if($user_id == 0) {
+			$data["err"] = 1;
+			return json($data);
+		}
+
+		$building = Building::where("id", $building_id)->find();
+		if(!$building){
+			$data["err"] = 1;
+			return json($data);
+		}
+
+        Favorite::create([
+            'user_id'  =>  $user_id,
+            'building_id' =>  $building_id
+        ], ['user_id','building_id'], true);
+
+		$favorite_building_list = Favorite::where("user_id", $user_id)->select();
+		$data["favorite_building_list"] = $favorite_building_list;        
+        return json($data);
+    }
+
+    public Function RemoveFavorite($token, $building_id){
+
+		$data = ['err' => 0];
+		$user_id = $this->_GetUserID($token);
+		if($user_id == 0) {
+			$data["err"] = 1;
+			return json($data);
+		}
+		
+		Favorite::where("user_id", $user_id)->where("building_id", $building_id)->delete();
+
+		$favorite_building_list = Favorite::where("user_id", $user_id)->select();
+		$data["favorite_building_list"] = $favorite_building_list;        
+        return json($data);
+    }
+
+	// * 房子下单 BookBuilding
+	//     - 请求: token / building_id
+	//     - 响应
+	//         + err
+	//         + user_data
+	//             * book_building_list
+	//                 - 房子编号 id，批次编号 batch_id，名字 name，是否车位 is_parking，面积 area，几房几厅几卫描述 desc，单价 unit_price，总价 total_price，订购者编号 book_user_id，收藏计数 favorite_count
+    public Function AddOrder($token, $building_id){
+    	
+		$data = ['err' => 0];
+		$user_id = $this->_GetUserID($token);
+		if($user_id == 0) {
+			$data["err"] = 1;
+			return json($data);
+		}
+
+		// 看看房子存在不
+		$building = Building::where("id", $building_id)->find();
+		if(!$building){
+			$data["err"] = 1;
+			return json($data);
+		}
+
+		// 每期只能一个订单
+		$order = Order::where("user_id", $user_id)->where("batch_id", $building->batch_id)->find();
+		if($order){
+			$data["err"] = 2;
+			return json($data);
+		}		
+
+		// 添加订单;
+        Order::create([
+            'user_id'  =>  $user_id,
+            'building_id' =>  $building_id,
+            'batch_id' =>  $building->batch_id
+        ], ['user_id','building_id', 'batch_id'], true);
+
+ 		$order_building_list = Order::where("user_id", $user_id)->select();
+		$data["order_building_list"] = $order_building_list;       
         return json($data);
     }
 
@@ -125,7 +245,7 @@ class Index extends Controller
 			return json($data);
 		}
 
-		$favorite_building_list = Building::where("user_id", $user_id)->select();
+		$favorite_building_list = Favorite::where("user_id", $user_id)->select();
 		$data["favorite_building_list"] = $favorite_building_list;
         return json($data);
     }
@@ -137,7 +257,7 @@ class Index extends Controller
 	//         + user_data
 	//             * book_building_list
 	//                 - 房子编号 id，批次编号 batch_id，名字 name，是否车位 is_parking，面积 area，几房几厅几卫描述 desc，单价 unit_price，总价 total_price，订购者编号 book_user_id，收藏计数 favorite_count
-    public Function GetBookData($token){
+    public Function GetOrder($token){
     	
 		$data = ['err' => 0];
 		$user_id = $this->_GetUserID($token);
@@ -146,53 +266,8 @@ class Index extends Controller
 			return json($data);
 		}
 
-		$book_building_list = Building::where("user_id", $user_id)->select();
-		$data["favorite_building_list"] = $book_building_list;
+		$order_building_list = Order::where("user_id", $user_id)->select();
+		$data["order_building_list"] = $order_building_list;
         return json($data);
     }
-
-	// * 房子收藏 AddFavorite
-	//     - 请求: token / building_id
-	//     - 响应
-	//         + err
-	//         + user_data
-	//             * favorite_building_list
-	//                 - 房子编号 id，批次编号 batch_id，名字 name，是否车位 is_parking，面积 area，几房几厅几卫描述 desc，单价 unit_price，总价 total_price，订购者编号 book_user_id，收藏计数 favorite_count
-    public Function AddFavorite($token, $building_id){
-		$data = ['err' => 0];
-		$user_id = $this->_GetUserID($token);
-		if($user_id == 0) {
-			$data["err"] = 1;
-			return json($data);
-		}
-        Favorite::create([
-            'user_id'  =>  $user_id,
-            'building_id' =>  $building_id
-        ], ['user_id','building_id'], true);
-        return json($data);
-    }
-
-	// * 房子下单 BookBuilding
-	//     - 请求: token / building_id
-	//     - 响应
-	//         + err
-	//         + user_data
-	//             * book_building_list
-	//                 - 房子编号 id，批次编号 batch_id，名字 name，是否车位 is_parking，面积 area，几房几厅几卫描述 desc，单价 unit_price，总价 total_price，订购者编号 book_user_id，收藏计数 favorite_count
-    public Function AddOrder($token, $building_id){
-    	
-		$data = ['err' => 0];
-		$user_id = $this->_GetUserID($token);
-		if($user_id == 0) {
-			$data["err"] = 1;
-			return json($data);
-		}
-        Order::create([
-            'user_id'  =>  $user_id,
-            'building_id' =>  $building_id
-        ], ['user_id','building_id'], true);
-        return json($data);
-    }
-
-
 }

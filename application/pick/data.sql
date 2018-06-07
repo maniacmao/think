@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS `favorite`(
 CREATE TABLE IF NOT EXISTS `order`(
     `user_id` int(8) unsigned NOT NULL,
     `building_id` int(8) unsigned NOT NULL,
+    `batch_id` int(8) unsigned NOT NULL,
     PRIMARY KEY (`user_id`, `building_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
 
