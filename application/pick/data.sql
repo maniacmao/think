@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS `user`(
     `id` int(8) unsigned NOT NULL AUTO_INCREMENT,
     `name` varchar(255) NOT NULL,
     `pwd` varchar(255) NOT NULL,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+	UNIQUE (`name`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
 
 CREATE TABLE IF NOT EXISTS `user_batch`(
@@ -11,8 +12,9 @@ CREATE TABLE IF NOT EXISTS `user_batch`(
     `user_id` int(8) unsigned NOT NULL,
     `batch_id` int(8) unsigned NOT NULL,
     `is_preference` int(8) unsigned NOT NULL,
-    PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
+    PRIMARY KEY (`id`),
+	UNIQUE (`user_id`, `batch_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `user_token`(
     `user_id` int(8) unsigned NOT NULL,
@@ -38,9 +40,12 @@ CREATE TABLE IF NOT EXISTS `building`(
     `des` varchar(255) NOT NULL,
     `is_parking` int(8) unsigned NOT NULL,
     `area` varchar(255) NOT NULL,
-    `unit_price` varchar(255) NOT NULL,
-    `total_price` varchar(255) NOT NULL,
-    PRIMARY KEY (`id`)
+    `unit_price` int(8) unsigned default 0,
+    `total_price` int(8) unsigned NOT NULL,
+    `user_id` int(8) unsigned default 0,
+    `favorite` int(8) unsigned default 0,
+    PRIMARY KEY (`id`),
+	UNIQUE (`batch_id`, `name`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
 
 
@@ -59,12 +64,12 @@ CREATE TABLE IF NOT EXISTS `order`(
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
 
 INSERT INTO `user`(`name`, `pwd`) VALUES
-    ("13968021231",'123456'),
-    ("13968021232",'123456'),
-    ("13968021233",'123456'),
-    ("13968021234",'123456'),
-    ("13968021235",'123456'),
-    ("13968021236",'123456');
+    ("13968021231", md5('123456')),
+    ("13968021232", md5('123456')),
+    ("13968021233", md5('123456')),
+    ("13968021234", md5('123456')),
+    ("13968021235", md5('123456')),
+    ("13968021236", md5('123456'));
 
 INSERT INTO `batch`(`name`, `des`, `preference_time`,`begin_time`, `end_time`) VALUES
     ("一期", "一期", "2018-06-06 12:00:00", "2018-06-06 12:05:00", "2018-06-06 12:30:00"),
