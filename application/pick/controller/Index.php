@@ -230,13 +230,13 @@ class Index extends Controller
 		}
 		$building = Building::where("id", $building_id)->find();
 		if(!$building){
-			$data["err"] = 1;
+			$data["err"] = 2;
 			return json($data);
 		}
 
 		$favorite = Favorite::where("user_id", $user_id)->where("building_id", $building_id)->find();
 		if(!$favorite){
-			$data["err"] = 1;
+			$data["err"] = 3;
 			return json($data);
 		}	
 
